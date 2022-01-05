@@ -1,0 +1,156 @@
+---
+
+- name: Get SNMP installation status | Windows Workstation
+  ansible.windows.win_powershell:
+    script: |
+      Get-WindowsCapability -Online -Name "SNMP*"
+  become_method: runas
+  become_user: System
+  become: yes
+  register: snmp_is_installed
+  changed_when: False
+  failed_when: False
+  when:
+    - snmp_install
+    - ansible_os_product_type == "workstation"
+  tags:
+    - install
+
+- name: Install SNMP | Windows Server
+  ansible.windows.win_feature:
+    name: SNMP-Service
+    include_management_tools: yes
+    state: present
+  when:
+    - snmp_install
+    - ansible_os_product_type == "server"
+  become_method: runas
+  become_user: System
+  become: yes
+  tags:
+    - install
+
+- name: Install SNMP | Windows Workstation
+  ansible.windows.win_powershell:
+    script: |
+      Add-WindowsCapability -Online -Name "SNMP.Client~~~~0.0.1.0"
+  become_method: runas
+  become_user: System
+  become: yes
+  when:
+    - snmp_install
+    - ansible_os_product_type == "workstation"
+    - not (snmp_is_installed.output[0].State.String | regex_findall('Installed'))
+  tags:
+    - install
+
+- name: Set SNMP managers | Windows
+  community.windows.win_snmp:
+    community_strings: []
+    permitted_managers:
+      '{{ snmp_managers | default([]) }}'
+    action: add
+  when: snmp_manage_config
+  notify:
+    - Restart SNMP Service | Windows
+  become_method: runas
+  become_user: System
+  become: yes
+  tags:
+    - configure
+
+- name: Set SNMP Communities | Windows
+  win_regedit:
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\ValidCommunities'
+    name: '{{ item.string }}'
+    data: '{% if item.type is match("rocommunity.*") %} 4 {% elif item.type is match("rwcommunity.*") %} 8 {% elif item.type is match("read-create") %} 16  {% elif item.type is match("notify") %} 2 {% elif item.type is match("none") %} 1 {% endif %}'
+    type: dword
+  with_items:
+    - '{{ snmp_communities }}'
+  when:
+    - snmp_manage_config
+  notify:
+    - Restart SNMP Service | Windows
+  become_method: runas
+  become_user: System
+  become: yes
+  tags:
+    - configure
+
+- name: Configure SNMP | Windows
+  win_regedit:
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\{{ item.path }}'
+    name: '{{ item.name }}'
+    type: '{{ item.type }}'
+    data: '{{ item.data }}'
+  loop:
+    - path: RFC1156Agent
+      name: sysContact
+      type: string
+      when: "{{ snmp_syscontact is defined }}"
+      data: '{{ snmp_syscontact | default() }}'
+    - path: RFC1156Agent
+      name: sysLocation
+      type: string
+      when: "{{ snmp_syslocation is defined }}"
+      data: '{{ snmp_syslocation | default() }}'
+    - path: RFC1156Agent
+      name: sysServices
+      type: dword
+      when: "{{ snmp_services is defined }}"
+      data: '{{ snmp_services | default() }}'
+  when:
+    - snmp_manage_config
+    - item.when
+  notify:
+    - Restart SNMP Service | Windows
+  become_method: runas
+  become_user: System
+  become: yes
+  tags:
+    - configure
+
+- name: Configure Firewall ICMP | Windows
+  win_firewall_rule:
+    name: "ICMP_{{ item }}"
+    action: allow
+    direction: in
+    protocol: ICMPv4
+    remoteip: "{% if not item | ipaddr %}{{ lookup('dig', item) }}{% else %}{{ item }}{% endif %}"
+    state: present
+    enabled: true
+    description: "Ansible manged rule, enabling ICMP access for {{ item }}"
+  loop:
+    '{{ snmp_managers | default([]) }}'
+  when:
+    - snmp_manage_config
+  become_method: runas
+  become_user: System
+  become: yes
+  tags:
+    - configure
+    - firewall
+    - windows_firewall
+
+- name: 'windows : firewall rule to allow SNMP-Service'
+  win_firewall_rule:
+    name: "SNMP_{{ item }}"
+    action: allow
+    direction: in
+    protocol: UDP
+    localport: '161'
+    remoteip: "{% if not item | ipaddr %}{{ lookup('dig', item) }}{% else %}{{ item }}{% endif %}"
+    state: present
+    enabled: true
+    description: "Ansible manged rule, enabling SNMP access for {{ item }}"
+  loop:
+    '{{ snmp_managers | default([]) }}'
+  when:
+    - snmp_manage_config
+  become_method: runas
+  become_user: System
+  become: yes
+  tags:
+    - configure
+    - firewall
+    - windows_firewall

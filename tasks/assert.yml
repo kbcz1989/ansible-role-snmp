@@ -1,0 +1,233 @@
+---
+
+- name: test if snmp_security_names is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_security_names is iterable
+    quiet: yes
+  when: snmp_security_names is defined
+
+- name: test if item in snmp_security_names is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is string
+      - item.source is defined
+      - item.source is string
+      - item.community is defined
+      - item.community is string
+    quiet: yes
+  loop: "{{ snmp_security_names }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: snmp_security_names is defined
+
+- name: test if snmp_groups is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_groups is iterable
+    quiet: yes
+  when: snmp_groups is defined
+
+- name: test if item in snmp_groups is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is string
+      - item.security_model is defined
+      - item.security_model is string
+      - item.security_model in [ "v1", "v2c" ]
+      - item.security_name is defined
+      - item.security_name is string
+      # - item.security_name in snmp_security_names
+    quiet: yes
+  loop: "{{ snmp_groups }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: snmp_groups is defined
+
+- name: test if snmp_views is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_views is iterable
+    quiet: yes
+  when: snmp_views is defined
+
+- name: test if item in snmp_views is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is string
+      - item.type is defined
+      - item.type is string
+      - item.type in [ "included", "excluded" ]
+      - item.subtree is defined
+      - item.subtree is string
+    quiet: yes
+  loop: "{{ snmp_views }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: snmp_views is defined
+
+- name: test if snmp_accesses is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_accesses is iterable
+    quiet: yes
+  when: snmp_accesses is defined
+
+- name: test if item in snmp_accesses is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.group is defined
+      - item.group is string
+      # - item.group in snmp_groups
+      - item.context is defined
+      - item.context is string
+      - item.security_model is defined
+      - item.security_model is string
+      - item.security_model in [ "any", "v1", "v2c", "usm" ]
+      - item.security_level is defined
+      - item.security_level is string
+      - item.prefix is defined
+      - item.prefix is string
+      - item.read is defined
+      - item.read is string
+      - item.write is defined
+      - item.write is string
+      - item.notif is defined
+      - item.notif is string
+    quiet: yes
+  loop: "{{ snmp_accesses }}"
+  loop_control:
+    label: "{{ item.group }}"
+  when: snmp_accesses is defined
+
+- name: test if snmp_syslocation is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_syslocation is iterable
+    quiet: yes
+  when: snmp_syslocation is defined
+
+- name: test if snmp_syscontact is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_syscontact is defined
+      - snmp_syscontact is iterable
+    quiet: yes
+  when: snmp_syslocation is defined
+
+- name: test if snmp_processes is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_processes is iterable
+    quiet: yes
+  when:
+    - snmp_processes is defined
+
+- name: test if mandatory item.name in snmp_processes is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is string
+    quiet: yes
+  loop: "{{ snmp_processes }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - snmp_processes is defined
+
+- name: test if optional item.minimum in snmp_processes is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.minimum is number
+    quiet: yes
+  loop: "{{ snmp_processes }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - snmp_processes is defined
+    - item.minimum is defined
+
+- name: test if optional item.maximum in snmp_processes is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.maximum is number
+    quiet: yes
+  loop: "{{ snmp_processes }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - snmp_processes is defined
+    - item.maximum is defined
+
+- name: test if snmp_scripts is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_scripts is iterable
+    quiet: yes
+  when:
+    - snmp_scripts is defined
+
+- name: test if mandatory item in snmp_scripts is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is string
+      - item.program is defined
+      - item.program is string
+      - item.arguments is defined
+      - item.arguments is string
+    quiet: yes
+  loop: "{{ snmp_scripts }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - snmp_scripts is defined
+
+- name: test if snmp_disks is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_disks is iterable
+    quiet: yes
+  when:
+    - snmp_disks is defined
+
+- name: test if mandatory item in snmp_disks is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.path is defined
+      - item.path is string
+    quiet: yes
+  loop: "{{ snmp_disks }}"
+  loop_control:
+    label: "{{ item.path }}"
+  when:
+    - snmp_disks is defined
+
+- name: test if optional item.minimum in snmp_disks is set correctly
+  ansible.builtin.assert:
+    that:
+      - item.minimum|float is number
+    quiet: yes
+  loop: "{{ snmp_disks }}"
+  loop_control:
+    label: "{{ item.path }}"
+  when:
+    - snmp_disks is defined
+    - item.minimum is defined
+
+- name: test if snmp_load is set correctly
+  ansible.builtin.assert:
+    that:
+      - snmp_load is mapping
+      - snmp_load.one_minute_average is defined
+      - snmp_load.one_minute_average is defined
+      - snmp_load.five_minute_average is defined
+      - snmp_load.five_minute_average is number
+      - snmp_load.fifteen_minute_average is defined
+      - snmp_load.fifteen_minute_average is number
+    quiet: yes
+  when:
+    - snmp_load is defined

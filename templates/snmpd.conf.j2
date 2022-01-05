@@ -1,0 +1,301 @@
+{{ ansible_managed | comment }}
+###############################################################################
+#
+# EXAMPLE.conf:
+#   An example configuration file for configuring the Net-SNMP agent ('snmpd')
+#   See the 'snmpd.conf(5)' man page for details
+#
+#  Some entries are deliberately commented out, and will need to be explicitly activated
+#
+###############################################################################
+#
+#  AGENT BEHAVIOUR
+#
+
+#  Listen for connections from the local system only
+#agentAddress  udp:127.0.0.1:161
+#  Listen for connections on all interfaces (both IPv4 *and* IPv6)
+#agentAddress udp:161,udp6:[::1]:161
+{% if snmp_agentaddress is defined %}
+agentAddress {{ snmp_agentaddress }}
+{% endif %}
+
+
+###############################################################################
+#
+#  SNMPv3 AUTHENTICATION
+#
+#  Note that these particular settings don't actually belong here.
+#  They should be copied to the file /var/net-snmp/snmpd.conf
+#     and the passwords changed, before being uncommented in that file *only*.
+#  Then restart the agent
+
+#  createUser authOnlyUser  MD5 "remember to change this password"
+#  createUser authPrivUser  SHA "remember to change this one too"  DES
+#  createUser internalUser  MD5 "this is only ever used internally, but still change the password"
+
+#  If you also change the usernames (which might be sensible),
+#  then remember to update the other occurances in this example config file to match.
+{% if snmp_users is defined %}
+{% for snmp_user in snmp_users if snmp_users|default(None) %}
+createUser {{ snmp_user.username }} {{ snmp_user.auth_protocol }} "{{ snmp_user.password }}" {{ snmp_user.privacy_protocol }} "{{ snmp_user.privacy_passphrase }}"
+{% endfor %}
+{% endif %}
+
+
+###############################################################################
+#
+#  ACCESS CONTROL
+#
+
+                                                 #  system + hrSystem groups only
+#view   systemonly  included   .1.3.6.1.2.1.1
+#view   systemonly  included   .1.3.6.1.2.1.25.1
+
+                                                 #  Full access from the local host
+#rocommunity public  localhost
+                                                 #  Default access to basic system info
+# rocommunity public  default    -V systemonly
+
+                                                 #  Full access from an example network
+                                                 #     Adjust this network address to match your local
+                                                 #     settings, change the community string,
+                                                 #     and check the 'agentAddress' setting above
+#rocommunity secret  10.0.0.0/16
+
+                                                 #  Full read-only access for SNMPv3
+# rouser   authOnlyUser
+                                                 #  Full write access for encrypted requests
+                                                 #     Remember to activate the 'createUser' lines above
+#rwuser   authPrivUser   priv
+
+#  It's no longer typically necessary to use the full 'com2sec/group/access' configuration
+#  r[ou]user and r[ow]community, together with suitable views, should cover most requirements
+
+{% if snmp_security_names is defined %}
+{% for security_name in snmp_security_names %}
+com2sec {{ security_name.name }} {{ security_name.source }} {{ security_name.community }}
+{% endfor %}
+{% endif %}
+
+{% if snmp_groups is defined %}
+{% for group in snmp_groups %}
+group {{ group.name }} {{ group.security_model }} {{ group.security_name }}
+{% endfor %}
+{% endif %}
+
+{% if snmp_views is defined %}
+{% for view in snmp_views %}
+view {{ view.name }} {{ view.type }} {{ view.subtree }} {% if view.mask is defined %}{{ view.mask }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if snmp_accesses is defined %}
+{% for access in snmp_accesses %}
+access {{ access.group }} "{{ access.context }}" {{ access.security_model }} {{ access.security_level }} {{ access.prefix }} {{ access.read }} {{ access.write }} {{ access.notif }}
+{% endfor %}
+{% endif %}
+
+{% if snmp_communities is defined %}
+{% for snmp_community in snmp_communities if snmp_communities|default(None) %}
+{% if snmp_community.type is match("r[ow]community.*") %}{{ snmp_community.type }} {{ snmp_community.string }} {% if snmp_community.source is defined %}{{ snmp_community.source }} {% if snmp_community.oid is defined %}{{ snmp_community.oid }}{% elif snmp_community.view is defined %}-V {{ snmp_community.view }}{% endif %}{% endif %}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if snmp_users is defined %}
+{% for snmp_user in snmp_users if snmp_users|default(None) %}
+{{ snmp_user.type }}{% if snmp_user.secmodel is defined %} -s {{ snmp_user.secmodel }}{% endif %} {{ snmp_user.username }} {{ snmp_user.seclevel | default('auth') }} {% if snmp_user.oid is defined %}{{ snmp_user.oid }}{% elif snmp_user.view is defined %}-V {{ snmp_user.view }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+###############################################################################
+#
+#  SYSTEM INFORMATION
+#
+
+#  Note that setting these values here, results in the corresponding MIB objects being 'read-only'
+#  See snmpd.conf(5) for more details
+#sysLocation    Sitting on the Dock of the Bay
+#sysContact     Me <me@example.org>
+                                                 # Application + End-to-End layers
+#sysServices    72
+
+{% if snmp_syslocation|default(None) %}
+syslocation {{ snmp_syslocation }}
+{% endif %}
+
+{% if snmp_syscontact|default(None) %}
+syscontact {{ snmp_syscontact }}
+{% endif %}
+
+{% if snmp_sysservices|default(None) %}
+sysServices {{ snmp_sysservices }}
+{% endif %}
+
+
+#
+#  Process Monitoring
+#
+                               # At least one  'mountd' process
+#proc  mountd
+                               # No more than 4 'ntalkd' processes - 0 is OK
+#proc  ntalkd    4
+                               # At least one 'sendmail' process, but no more than 10
+#proc  sendmail 10 1
+
+{% if snmp_processes|default(None) %}
+{% for process in snmp_processes %}
+proc {{ process.name }} {% if process.maximum is defined %}{{ process.maximum }}{% endif %} {% if process.minimum is defined %}{{ process.minimum }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+#  Walk the UCD-SNMP-MIB::prTable to see the resulting output
+#  Note that this table will be empty if there are no "proc" entries in the snmpd.conf file
+
+
+#
+#  Disk Monitoring
+#
+                               # 10MBs required on root disk, 5% free on /var, 10% free on all other disks
+#disk       /     10000
+#disk       /var  5%
+#includeAllDisks  10%
+
+#  Walk the UCD-SNMP-MIB::dskTable to see the resulting output
+#  Note that this table will be empty if there are no "disk" entries in the snmpd.conf file
+
+{% if snmp_disks is defined %}
+{% for disk in snmp_disks %}
+disk {{ disk.path }} {{ disk.minimum }}
+{% endfor %}
+{% endif %}
+{% if snmp_disks_include_all is defined %}
+includeAllDisks {{ snmp_disks_include_all_minpercent }}
+{% endif %}
+
+#
+#  System Load
+#
+                               # Unacceptable 1-, 5-, and 15-minute load averages
+#load   12 10 5
+
+#  Walk the UCD-SNMP-MIB::laTable to see the resulting output
+#  Note that this table *will* be populated, even without a "load" entry in the snmpd.conf file
+
+{% if snmp_load is defined %}
+load {{ snmp_load.one_minute_average }} {{ snmp_load.five_minute_average }} {{ snmp_load.fifteen_minute_average }}
+{% endif %}
+
+###############################################################################
+#
+#  ACTIVE MONITORING
+#
+
+                                    #   send SNMPv1  traps
+# trapsink     localhost public
+                                    #   send SNMPv2c traps
+#trap2sink    localhost public
+                                    #   send SNMPv2c INFORMs
+#informsink   localhost public
+
+#  Note that you typically only want *one* of these three lines
+#  Uncommenting two (or all three) will result in multiple copies of each notification.
+
+{% if snmp_trapsinks|default(None) %}
+{% for trapsink in snmp_trapsinks %}
+trapsink{% if trapsink.profile is defined %} -profile {{ trapsink.profile }} {% endif %}{% if trapsink.name is defined %} -name {{ trapsink.name }} {% endif %}{% if trapsink.tag is defined %} -tag {{ trapsink.tag }} {% endif %} {{ trapsink.host }}{% if trapsink.community is defined %}{% if trapsink.port is defined %}:{{ trapsink.port }}{% endif %} {{ trapsink.community }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if snmp_trap2sinks|default(None) %}
+{% for trap2sink in snmp_trap2sinks %}
+trap2sink{% if trap2sink.profile is defined %} -profile {{ trap2sink.profile }} {% endif %}{% if trap2sink.name is defined %} -name {{ trap2sink.name }} {% endif %}{% if trap2sink.tag is defined %} -tag {{ trap2sink.tag }} {% endif %} {{ trap2sink.host }}{% if trap2sink.community is defined %}{% if trap2sink.port is defined %}:{{ trap2sink.port }}{% endif %} {{ trap2sink.community }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if snmp_informsinks|default(None) %}
+{% for informsink in snmp_informsinks %}
+informsink{% if informsink.profile is defined %} -profile {{ informsink.profile }} {% endif %}{% if informsink.name is defined %} -name {{ informsink.name }} {% endif %}{% if informsink.tag is defined %} -tag {{ informsink.tag }} {% endif %} {{ informsink.host }}{% if informsink.community is defined %}{% if informsink.port is defined %}:{{ informsink.port }}{% endif %} {{ informsink.community }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if snmp_trapsesses|default(None) %}
+{% for trapsess in snmp_trapsesses %}
+trapsess{% if trapsess.profile is defined %} -profile {{ trapsess.profile }} {% endif %}{% if trapsess.name is defined %} -name {{ trapsess.name }} {% endif %}{% if trapsess.tag is defined %} -tag {{ trapsess.tag }} {% endif %}{% if trapsess.cmdargs is defined %} {{ trapsess.cmdargs }}{% endif %} {{ trapsess.host }}
+{% endfor %}
+{% endif %}
+
+{% if snmp_notificationFilters|default(None) %}
+{% for notificationFilter in snmp_notificationFilters %}
+notificationFilter {{ notificationFilter.name }} {{ notificationFilter.oid }} {{ notificationFilter.mask }} {{ notificationFilter.type }}
+{% endfor %}
+{% endif %}
+
+#
+#  Event MIB - automatically generate alerts
+#
+                                   # Remember to activate the 'createUser' lines above
+#iquerySecName   internalUser       
+#rouser          internalUser
+                                   # generate traps on UCD error conditions
+#defaultMonitors          yes
+                                   # generate traps on linkUp/Down
+#linkUpDownNotifications  yes
+
+
+
+###############################################################################
+#
+#  EXTENDING THE AGENT
+#
+
+#
+#  Arbitrary extension commands
+#
+# extend    test1   /bin/echo  Hello, world!
+# extend-sh test2   echo Hello, world! ; echo Hi there ; exit 35
+#extend-sh test3   /bin/sh /tmp/shtest
+
+#  Note that this last entry requires the script '/tmp/shtest' to be created first,
+#    containing the same three shell commands, before the line is uncommented
+
+#  Walk the NET-SNMP-EXTEND-MIB tables (nsExtendConfigTable, nsExtendOutput1Table
+#     and nsExtendOutput2Table) to see the resulting output
+
+#  Note that the "extend" directive supercedes the previous "exec" and "sh" directives
+#  However, walking the UCD-SNMP-MIB::extTable should still returns the same output,
+#     as well as the fuller results in the above tables.
+
+#
+#  "Pass-through" MIB extension command
+#
+#pass .1.3.6.1.4.1.8072.2.255  /bin/sh       PREFIX/local/passtest
+#pass .1.3.6.1.4.1.8072.2.255  /usr/bin/perl PREFIX/local/passtest.pl
+
+# Note that this requires one of the two 'passtest' scripts to be installed first,
+#    before the appropriate line is uncommented.
+# These scripts can be found in the 'local' directory of the source distribution,
+#     and are not installed automatically.
+
+#  Walk the NET-SNMP-PASS-MIB::netSnmpPassExamples subtree to see the resulting output
+
+
+#
+#  AgentX Sub-agents
+#
+                                           #  Run as an AgentX master agent
+# master          agentx
+                                           #  Listen for network connections (from localhost)
+                                           #    rather than the default named socket /var/agentx/master
+#agentXSocket    tcp:localhost:705
+
+{% if snmp_custom_config|default(None) %}
+{{ snmp_custom_config }}
+{% endif %}

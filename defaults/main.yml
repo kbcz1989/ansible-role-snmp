@@ -1,0 +1,183 @@
+---
+# defaults file for snmp
+
+snmp_install: false
+snmp_manage_config: false
+
+#snmp_syslocation:
+#snmp_syscontact:
+#snmp_security_names:
+#  - name: disksOnly
+#    source: default
+#    community: disks
+#  - name: allThings
+#    source: default
+#    community: everything
+#
+#snmp_groups:
+#  - name: diskGroup
+#    security_model: v1
+#    security_name: disksOnly
+#  - name: allThings
+#    security_model: v1
+#    security_name: everything
+#
+#snmp_views:
+#  - name: systemview
+#    type: included
+#    subtree: ".1.3.6.1.2.1.1"
+#  - name: systemview
+#    type: included
+#    subtree: ".1.3.6.1.2.1.25.1.1"
+#  - name: diskView
+#    type: included
+#    subtree: ".1.3.6.1.2.1.25.2.3"
+#  - name: allView
+#    type: included
+#    subtree: ".1"
+#
+#snmp_accesses:
+#  - group: diskGroup
+#    context: ""
+#    security_model: any
+#    security_level: noauth
+#    prefix: exact
+#    read: diskView
+#    write: none
+#    notif: none
+#  - group: allGroup
+#    context: ""
+#    security_model: any
+#    security_level: noauth
+#    prefix: exact
+#    read: diskView
+#    write: none
+#    notif: none
+#
+#snmp_users:
+#  - username: authPrivUser
+#    password: 'UmYtYR49RsU0CO5H'
+#    type: rouser
+#    auth_protocol: SHA
+#    privacy_passphrase: 'mWaZf0epSK48QQ3S'
+#    privacy_protocol: AES
+#    secmodel: tsm
+#    seclevel: priv
+#    oid: .1
+#    view: diskView
+#
+#  - username: authPrivUser2
+#    password: 'UmYtYR49RsU0CO5H'
+#    type: rouser
+#    auth_protocol: MD5
+#    privacy_passphrase: 'mWaZf0epSK48QQ3S'
+#    privacy_protocol: AES
+#
+#  - username: authPrivUser3
+#    password: 'UmYtYR49RsU0CO5H'
+#    type: rouser
+#    auth_protocol: SHA
+#    privacy_passphrase: 'mWaZf0epSK48QQ3S'
+#    privacy_protocol: DES
+#
+#snmp_communities:
+#  - type: rocommunity
+#    string: public
+#    source: "10.0.0.0/8"
+#    oid: .1
+#    view: allView
+#  - type: rocommunity6
+#    string: public
+#
+#snmp_disks_include_all: true
+#snmp_disks_include_all_minpercent: "10%"
+#
+#snmp_disks:
+#  - path: /
+#    minimum: 10000
+#  - path: /var
+#    minimum: "5%"
+#
+#snmp_processes:
+#  - name: mountd
+#  - name: ntalkd
+#    maximum: 4
+#  - name: sendmail
+#    minimum: 1
+#    maximum: 10
+#
+#snmp_load:
+#  one_minute_average: 12
+#  five_minute_average: 14
+#  fifteen_minute_average: 14
+#
+#snmp_trapsinks:
+#  - host: 10.1.1.1
+#    profile: test-profile-trapsink1
+#    name: test-name-trapsink1
+#    tag: test-tag-trapsink1
+#    community: public
+#    port: 161
+#  - host: 10.1.1.1
+#    community: private
+#    port: 161
+#  - host: 10.1.1.2
+#    name: test-name-trapsink2
+#    community: public
+#
+#snmp_trap2sinks:
+#  - host: 10.1.1.1
+#    profile: test-profile-trap2sink1
+#    name: test-name-trap2sink1
+#    tag: test-tag-trap2sink1
+#    community: public
+#    port: 161
+#  - host: 10.1.1.1
+#    community: private
+#    port: 161
+#  - host: 10.1.1.2
+#    name: test-name-trap2sink2
+#    community: public
+#
+#snmp_informsinks:
+#  - host: 10.1.1.1
+#    profile: test-profile-informsink1
+#    name: test-name-informsink1
+#    tag: test-tag-informsink1
+#    community: public
+#    port: 161
+#  - host: 10.1.1.1
+#    community: private
+#    port: 161
+#  - host: 10.1.1.2
+#    name: test-name-informsink2
+#    community: public
+#
+#snmp_trapsesses:
+#  - host: 10.1.1.1
+#    profile: test-profile-trapsesses1
+#    name: test-name-trapsesses1
+#    tag: test-tag-trapsesses1
+#    cmdargs: -v 3 -u snmpuser -e <engineID> -l authPriv -a SHA -A <authPassword> -x AES -X <privPassword>
+#  - host: 10.1.1.1
+#    profile: test-profile-trapsesses2
+#    tag: test-tag-trapsesses2
+#  - host: 10.1.1.2
+#
+#snmp_notificationFilters:
+#  - name: all_ok
+#    oid: .1.3
+#    mask: "0x00"
+#    type: included
+#  - name: no_coldstart
+#    oid: .1.3
+#    mask: "0x00"
+#    type: included
+#  - name: no_coldstart
+#    oid: .1.3.6.1.6.3.1.1.5.1
+#    mask: "0x00"
+#    type: included
+#
+#snmp_custom_config: |
+#  extend hardware '/bin/cat /sys/devices/virtual/dmi/id/product_name'
+#  extend manufacturer '/bin/cat /sys/devices/virtual/dmi/id/sys_vendor'

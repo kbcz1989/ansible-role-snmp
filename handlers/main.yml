@@ -1,0 +1,15 @@
+---
+# handlers file for snmp
+
+- name: Restart SNMP Service | Linux
+  ansible.builtin.service:
+    name: "{{ snmp_service }}"
+    state: restarted
+
+- name: Restart SNMP Service | Windows
+  ansible.windows.win_service:
+    name: "{{ snmp_service }}"
+    state: restarted
+  become_method: runas
+  become_user: System
+  become: yes

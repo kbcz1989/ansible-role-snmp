@@ -1,0 +1,4 @@
+---
+snmp_resource_name: WindowsOptionalFeature
+snmp_service: SNMP
+snmp_present: Enable

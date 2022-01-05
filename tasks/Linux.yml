@@ -1,0 +1,30 @@
+---
+- name: Install SNMP Service | Linux
+  ansible.builtin.package:
+    name: "{{ snmp_packages }}"
+    state: present
+  when: snmp_install
+  tags:
+    - install
+
+- name: Configure SNMP Service | Linux
+  ansible.builtin.template:
+    src: snmpd.conf.j2
+    dest: /etc/snmp/snmpd.conf
+    mode: "0600"
+    owner: root
+    group: root
+  notify:
+    - Restart SNMP Service | Linux
+  when: snmp_manage_config
+  tags:
+    - configure
+
+- name: Start SNMP Service | Linux
+  ansible.builtin.service:
+    name: "{{ snmp_service }}"
+    state: started
+    enabled: yes
+  when: snmp_install
+  tags:
+    - install
