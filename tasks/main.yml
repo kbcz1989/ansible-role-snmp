@@ -35,3 +35,12 @@
   loop_control:
     loop_var: loop_distribution
   tags: always
+
+- name: include download files task
+  include_tasks: tasks/download_files.yml
+  tags: always
+
+- name: include product_serial
+  include_tasks: tasks/product_serial_permissions.yml
+  tags: always
+

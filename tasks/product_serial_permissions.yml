@@ -1,0 +1,25 @@
+---
+- name: Set /sys/devices/virtual/dmi/id/product_serial permissions
+  ansible.builtin.file:
+    path: /sys/devices/virtual/dmi/id/product_serial
+    mode: '0444'
+  become: yes
+  when:
+    - snmp_set_product_serial_permissions
+    - ansible_system == "Linux"
+  tags:
+    - snmp_set_product_serial_permissions
+
+- name: Create a cron job to set /sys/devices/virtual/dmi/id/product_serial permissions on boot
+  ansible.builtin.cron:
+    name: "set /sys/devices/virtual/dmi/id/product_serial permissions"
+    special_time: reboot
+    job: "chmod 444 /sys/devices/virtual/dmi/id/product_serial"
+    user: root
+  become: yes
+  when:
+    - snmp_set_product_serial_permissions
+    - ansible_system == "Linux"
+  tags:
+    - snmp_set_product_serial_permissions
+

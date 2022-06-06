@@ -1,0 +1,31 @@
+---
+- name: Download files if not exists
+  block:
+    - name: Check if file exists
+      stat:
+        path: "{{ item.path }}"
+      register: file_downloaded
+      when:
+        - snmp_download_files is defined and snmp_download_files|length > 0
+        - ansible_system == "Linux"
+      tags:
+       - snmp_download_files
+      loop: "{{ snmp_download_files }}"
+
+    - name: Download file
+      get_url:
+        url: "{{item.0.url}}"
+        dest: "{{item.0.path}}"
+        mode: "{{item.0.mode | default('0644')}}"
+        backup: "{{item.0.backup | default('no')}}"
+        force: "{{item.0.force | default('no')}}"
+      when:
+        - ansible_system == "Linux"
+        - not item.1.stat.exists or (item.0.mode|default('0644') != item.1.stat.mode)
+      become: yes
+      tags:
+        - snmp_download_files
+      loop: "{{ snmp_download_files|zip(file_downloaded.results)|list }}"
+      loop_control:
+        label: "{{ item.0 }}, { exists: {{ item.1.stat.exists }} }"
+

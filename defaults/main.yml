@@ -181,3 +181,6 @@ snmp_manage_config: false
 #snmp_custom_config: |
 #  extend hardware '/bin/cat /sys/devices/virtual/dmi/id/product_name'
 #  extend manufacturer '/bin/cat /sys/devices/virtual/dmi/id/sys_vendor'
+
+snmp_download_files: []
+snmp_set_product_serial_permissions: false
